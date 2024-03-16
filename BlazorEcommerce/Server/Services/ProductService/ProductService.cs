@@ -53,5 +53,57 @@
 
             return response;
         }
+
+        public async Task<ServiceResponse<List<string>>> GetProductSearchSuggestionsAsync(string searchText)
+        {
+            var products = await FindProductsBySearchTextAsync(searchText);
+            List<string> result = new();
+
+            foreach (var product in products)
+            {
+                if (product.Title.Contains(searchText, StringComparison.InvariantCultureIgnoreCase))
+                {
+                    result.Add(product.Title);
+                }
+
+                if (string.IsNullOrEmpty(product.Description) == false)
+                {
+                    var punctuation = product.Description.Where(char.IsPunctuation)
+                        .Distinct().ToArray();
+                    var words = product.Description.Split()
+                        .Select(s => s.Trim(punctuation));
+
+                    foreach (var word in words)
+                    {
+                        if (word.Contains(searchText, StringComparison.InvariantCultureIgnoreCase) && !result.Contains(word))
+                        {
+                            result.Add(word);
+                        }
+                    }
+                }
+            }
+
+            return new ServiceResponse<List<string>> { Data = result };
+        }
+
+        public async Task<ServiceResponse<List<Product>>> SearchProducts(string searchText)
+        {
+            var response = new ServiceResponse<List<Product>>
+            {
+                Data = await FindProductsBySearchTextAsync(searchText)
+            };
+
+            return response;
+        }
+
+        private async Task<List<Product>> FindProductsBySearchTextAsync(string searchText)
+        {
+            return await _context.Products
+                                .Include(p => p.Variants)
+                                .Where(p => p.Title.ToLower().Contains(searchText.ToLower())
+                                    ||
+                                    p.Description.ToLower().Contains(searchText.ToLower()))
+                                .ToListAsync();
+        }
     }
 }
