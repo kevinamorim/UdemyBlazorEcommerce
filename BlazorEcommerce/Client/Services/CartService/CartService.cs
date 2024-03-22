@@ -1,4 +1,5 @@
 ﻿
+using BlazorEcommerce.Shared;
 using BlazorEcommerce.Shared.DTOs;
 using Blazored.LocalStorage;
 
@@ -21,7 +22,18 @@ namespace BlazorEcommerce.Client.Services.CartService
         public async Task AddToCartAsync(CartItem cartItem)
         {
             List<CartItem>? cart = await GetCartFromStorageAsync();
-            cart.Add(cartItem);
+
+            var sameItem = cart.Find(i => i.ProductId == cartItem.ProductId 
+                && i.ProductTypeId == cartItem.ProductTypeId);
+
+            if (sameItem == null) 
+            {
+                cart.Add(cartItem);
+            }
+            else
+            {
+                sameItem.Quantity += cartItem.Quantity;
+            }
 
             await _localStorage.SetItemAsync("cart", cart);
 
@@ -47,6 +59,32 @@ namespace BlazorEcommerce.Client.Services.CartService
 
             var cartProducts = await response.Content.ReadFromJsonAsync<ServiceResponse<List<CartProductResponse>>>();
             return cartProducts?.Data ?? new List<CartProductResponse>();
+        }
+
+        public async Task RemoveProductFromCart(int productId, int productTypeId)
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cart == null) return;
+
+            var cartItem = cart.Find(i => i.ProductId == productId && i.ProductTypeId == productTypeId);
+            if (cartItem == null) return;
+
+            cart.Remove(cartItem);
+            await _localStorage.SetItemAsync("cart", cart);
+            OnChange.Invoke();
+        }
+
+        public async Task UpdateQuantity(CartProductResponse product)
+        {
+            var cart = await _localStorage.GetItemAsync<List<CartItem>>("cart");
+            if (cart == null) return;
+
+            var cartItem = cart.Find(i => i.ProductId == product.ProductId && i.ProductTypeId == product.ProductTypeId);
+            if (cartItem == null) return;
+
+            cartItem.Quantity = product.Quantity;
+            await _localStorage.SetItemAsync("cart", cart);
+            OnChange.Invoke();
         }
     }
 }

@@ -8,6 +8,8 @@ namespace BlazorEcommerce.Client.Services.CartService
         Task AddToCartAsync(CartItem cartItem);
         Task<List<CartItem>> GetCartItemsAsync();
         Task<List<CartProductResponse>> GetCartProducts();
+        Task RemoveProductFromCart(int productId, int productTypeId);
+        Task UpdateQuantity(CartProductResponse product);
             
     }
 }
